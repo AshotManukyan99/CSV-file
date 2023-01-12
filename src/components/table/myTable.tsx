@@ -1,107 +1,118 @@
-// @ts-nocheck
-import React, {useState} from "react";
-import Paper from "@mui/material/Paper";
-import Table from "@mui/material/Table";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import TableCell from "@mui/material/TableCell";
-import TableBody from "@mui/material/TableBody";
-import TableContainer from "@mui/material/TableContainer";
-import CsvLink from "react-csv-export";
+import React from "react";
+import CsvLink from "../../react-csv-export/src/CsvLink";
+import {AppDispatch} from "../../store";
+import {useDispatch, useSelector} from "react-redux";
+import {getCSVItems} from "../../store/selectors/selectors";
+import {csvFileToArray} from "../../helpers";
+import {setCSVConvertData, setFile} from '../../store/reducer/tableReducer'
+import {DataGrid, GridToolbarQuickFilter} from '@mui/x-data-grid';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 
 
-function MyTable() {
-    const [file, setFile] = useState();
-    const [array, setArray] = useState([]);
+const MyTable: React.FC = () => {
+    const dispatch: AppDispatch = useDispatch();
+    const {items} = useSelector(getCSVItems);
+    const {
+        tableItem, file, keys
+    } = items
 
     const fileReader = new FileReader();
 
-    const handleOnChange = (e) => {
-        setFile(e.target.files[0]);
+    const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        e.stopPropagation()
+        if (e.target) {
+            const files = e.target.files?.item(0) as File | null
+            dispatch(setFile(files))
+        }
     };
 
-    const csvFileToArray = string => {
-        const csvHeader = string.slice(0, string.indexOf("\n")).split(",");
-        const csvRows = string.slice(string.indexOf("\n") + 1).split("\n");
+    const handleCSVItems = (string: string) => {
+        dispatch(setCSVConvertData(csvFileToArray(string)))
+    }
 
-        const array = csvRows.map(i => {
-            const values = i.split(",");
-            const obj = csvHeader.reduce((object, header, index) => {
-                object[header] = values[index];
-                return object;
-            }, {});
-            return obj;
-        });
-
-        setArray(array);
-    };
-
-    const handleOnSubmit = (e) => {
+    const handleOnSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
 
         if (file) {
             fileReader.onload = function (event) {
-                const text = event.target.result;
-                csvFileToArray(text);
+                const text = event.target?.result as string;
+                handleCSVItems(text);
             };
 
             fileReader.readAsText(file);
         }
     };
 
-    const headerKeys = Object.keys(Object.assign({}, ...array));
-
 
     return (
-        <div style={{textAlign: "center"}}>
-            <h1>REACTJS CSV IMPORT EXAMPLE </h1>
-            <form>
-                <input
-                    type={"file"}
-                    id={"csvFileInput"}
-                    accept={".csv"}
-                    onChange={handleOnChange}
-                />
+        <div style={{
+            margin: '0 auto',
+            maxWidth: '1200px'
+        }}>
+            <div style={{
+                textAlign: 'center'
+            }}>
+                <h1> Choose your CSV file </h1>
+                <form>
 
-                <button
-                    onClick={(e) => {
-                        handleOnSubmit(e);
-                    }}
-                >
-                    IMPORT CSV
-                </button>
+                    <input
+                        style={{display: 'none'}}
+                        id="raised-button-file"
+                        multiple
+                        type={"file"}
+                        accept={".csv"}
+                        onChange={handleOnChange}
+                    />
+                    <label htmlFor="raised-button-file">
+                        <Button style={{
+                            marginRight: '20px'
+                        }} color="secondary" component="span">
+                            Upload
+                        </Button>
+                    </label>
 
-                <CsvLink data={array} fileName="ExportedData">
-                    <button style={{
-                        marginLeft: '20px'
-                    }}> EXPORT CSV
-                    </button>
-                </CsvLink>
+                    <Button disabled={!file} onClick={handleOnSubmit} variant="outlined">Create Table</Button>
 
-            </form>
+                    <CsvLink data={tableItem} fileName="ExportedData">
+                        <Button disabled={!keys.length} style={{
+                            marginLeft: '20px'
+                        }} variant="contained">EXPORT</Button>
+                    </CsvLink>
 
-            <br/>
+                </form>
 
-            <TableContainer component={Paper}>
-                <Table sx={{minWidth: 650}} aria-label="simple table">
-                    <TableHead>
-                        <TableRow>
-                            {headerKeys.map((key) => (
-                                <TableCell key={key}>{key}</TableCell>
-                            ))}
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {array.map((item) => (
-                            <TableRow key={item.id}>
-                                {Object.values(item).map((val, index) => (
-                                    <TableCell key={index}>{val}</TableCell>
-                                ))}
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                <br/>
+            </div>
+
+            {
+                !!keys.length &&
+                <Box sx={{height: 400, width: '1200px'}}>
+                    <DataGrid
+                        components={{
+                            Toolbar: () => <div
+                                style={{
+                                    margin: '15px'
+                                }}
+                            ><GridToolbarQuickFilter/></div>
+                        }}
+                        rows={tableItem}
+                        columns={keys}
+                        disableColumnFilter
+                        disableColumnSelector
+                        disableDensitySelector
+                        pageSize={5}
+                        rowsPerPageOptions={[5]}
+                        checkboxSelection
+                        componentsProps={{
+                            toolbar: {
+                                showQuickFilter: true,
+                                quickFilterProps: {debounceMs: 500},
+                            },
+                        }}
+                    />
+                </Box>
+            }
 
         </div>
     );

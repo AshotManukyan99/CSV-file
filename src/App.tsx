@@ -2,13 +2,6 @@ import React from 'react';
 import './App.css';
 import MyTable from "./components/table/myTable";
 
-function App() {
-    return (
-        <div className="App">
-            <MyTable/>
-        </div>
-    );
-}
-
+const App: React.FC = () => <MyTable/>
 
 export default App;
