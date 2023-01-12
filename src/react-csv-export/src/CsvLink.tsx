@@ -1,3 +1,4 @@
+// eslint-disable
 // @ts-nocheck
 import Papa from "papaparse";
 import React, {MouseEvent, useCallback, useEffect} from "react";
@@ -47,6 +48,7 @@ const CsvLink: React.FC<CsvLinkProps> = (
         return () => {
             revokeObjectURL();
         };
+        // eslint-disable-next-line
     }, []);
 
     const computeFileName = useCallback(
